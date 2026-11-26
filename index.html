@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121213" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="生词本">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>生词本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Charis+SIL:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/*
+VOICE: quick and calm, a pocket tool opened for ten seconds at a time; plain Apple-like controls.
+IDEA: the highlighter on a page: every new word is one you marked in yellow.
+PICTURE: the yellow capture strip with live results under it, then the big flash card with its marked headword.
+COLOUR and TYPE: white paper, black ink, highlighter yellow; pink/orange/green/blue highlighters grade recall. Charis SIL for headwords and IPA, the system font for Chinese.
+LAYOUT: one phone column up to 680px, sticky header with three tabs, sheets rising from the bottom.
+*/
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#121213);--raise:light-dark(#ffffff,#1c1c1f);--sunk:light-dark(#f2f2f0,#212124);
+--ink:light-dark(#151515,#f1f1f1);--ink2:light-dark(#5d5d5d,#a6a6a6);--line:light-dark(#e5e5e2,#333337);
+--hl:#ffe54a;--mark:light-dark(#ffe54a,rgba(255,222,50,.38));
+--band:light-dark(#ffe54a,#29250f);--band-ink:light-dark(#151515,#f4e68c);--band-in:light-dark(#ffffff,#151515);--band-bd:light-dark(#151515,#6b6122);
+--btn:light-dark(#151515,#ffe54a);--btn-ink:light-dark(#ffffff,#151515);
+--pink:#ff99b9;--orange:#ffbb6e;--green:#9ae392;--blue:#92d1ff;--on:#151515;
+--bad:light-dark(#c2214e,#ff8fad);--good:light-dark(#1d7a33,#93e3a0);
+--serif:"Charis SIL","Gentium Book Plus",Georgia,"Times New Roman",serif;
+--sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+html.lock,html.lock body{overflow:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans);overflow-x:clip;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default;opacity:.45}
+:focus-visible{outline:2.5px solid var(--ink);outline-offset:2px}
+h2{font:700 20px/1.3 var(--sans);margin:0 0 8px;text-wrap:balance}
+h3{font:600 15px/1.4 var(--sans);margin:22px 0 8px;color:var(--ink2)}
+.wrap{max-width:680px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left))}
+.mk{background:linear-gradient(transparent 50%,var(--mark) 50%,var(--mark) 92%,transparent 92%);-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .12em;margin:0 -.12em}
+.fine{font-size:14px;color:var(--ink2);margin:6px 0}
+.pend{color:var(--ink2)}.bad{color:var(--bad)}
+/* header */
+.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:saturate(1.8) blur(16px);backdrop-filter:saturate(1.8) blur(16px);padding-top:env(safe-area-inset-top);border-bottom:1px solid var(--line)}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:8px}
+.logo{margin:0;font:800 23px/1.2 var(--sans);letter-spacing:.03em}
+.icon{width:44px;height:44px;display:grid;place-items:center;border:0;background:transparent;border-radius:12px;margin-right:-10px;color:var(--ink);flex:none}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;margin:6px 0 10px;background:var(--sunk);border-radius:14px}
+.tabs button{min-height:42px;border:0;border-radius:10px;background:transparent;font-weight:600;font-size:16px;color:var(--ink2);display:flex;align-items:center;justify-content:center;gap:6px}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.badge{min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--hl);color:var(--on);font:700 13px/22px var(--sans);font-variant-numeric:tabular-nums}
+main{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+/* capture */
+.cap{background:var(--band);color:var(--band-ink);padding:18px 0 16px}
+.cap-l{display:block;font:800 22px/1.25 var(--sans);margin:0 0 12px}
+.cap-row{display:flex;gap:8px}
+.cap input{width:100%;height:54px;border:2px solid var(--band-bd);border-radius:14px;background:var(--band-in);color:var(--ink);padding:0 14px;font-size:20px}
+.cap input::placeholder{color:var(--ink2)}
+.cap input:focus{outline:none;box-shadow:0 0 0 4px light-dark(rgba(21,21,21,.16),rgba(255,229,74,.3))}
+.cap .note{height:46px;font-size:16px;margin-top:8px;border-width:1.5px}
+.cap .add{min-height:54px;padding:0 22px;font-size:18px;border-radius:14px;flex:none}
+.hint{margin:9px 2px 0;font-size:14px;opacity:.82}
+.ac{list-style:none;margin:8px 0 0;padding:4px;background:var(--band-in);color:var(--ink);border:2px solid var(--band-bd);border-radius:14px}
+.ac li{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--line)}
+.ac li:last-child{border-bottom:0}
+.ac-m{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:0;background:none;padding:8px 10px;text-align:left;min-height:52px;border-radius:10px;color:var(--ink)}
+.ac-add{flex:none;min-height:38px;padding:0 12px;border:0;border-radius:10px;background:var(--btn);color:var(--btn-ink);font-weight:650;font-size:15px;margin-right:4px}
+/* buttons */
+.btn{min-height:44px;padding:0 18px;border-radius:12px;border:0;font-weight:650;font-size:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;line-height:1.25}
+.btn.big{width:100%;min-height:54px;font-size:17px;border-radius:15px}
+.btn.ink{background:var(--btn);color:var(--btn-ink)}
+.btn.hl{background:var(--hl);color:var(--on)}
+.btn.ghost{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--ink)}
+.btn.danger{background:transparent;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--bad) 45%,transparent);color:var(--bad)}
+.btn.armed{background:var(--bad);color:#fff;box-shadow:none}
+.btn.sm{min-height:38px;padding:0 14px;font-size:15px}
+.link{border:0;background:none;padding:0;min-height:44px;color:var(--ink2);font-weight:600;font-size:15px;text-decoration:underline;text-underline-offset:3px;text-align:left}
+.chip{border:0;box-shadow:inset 0 0 0 1.5px var(--line);background:var(--raise);border-radius:999px;min-height:40px;padding:0 14px;font-size:15px;font-weight:550;white-space:nowrap;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:none}
+/* home */
+.notice{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:10px 8px 10px 14px;border-radius:14px;background:var(--sunk);font-size:15px}
+.pick{margin-top:16px;border-radius:18px;box-shadow:inset 0 0 0 2px var(--ink);padding:6px 14px 10px}
+.pick-h{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px}
+.pick-h b{font-size:17px}
+.due{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:4px 16px;padding:22px 0 18px;border-bottom:1px solid var(--line)}
+.num{font:800 clamp(58px,17vw,78px)/.95 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.num.zero{color:var(--ink2)}
+.due p{margin:8px 0 0;font-size:16px;color:var(--ink2)}
+.due .btn{min-height:52px;padding:0 22px;font-size:17px;border-radius:15px}
+.facts{grid-column:1/-1;list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:4px 18px;font-size:14px;color:var(--ink2)}
+.facts b{color:var(--ink);font-size:17px;margin-right:4px;font-variant-numeric:tabular-nums}
+.sec{padding:22px 0 6px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sec-h h2{margin:0}
+.list{list-style:none;margin:0;padding:0}
+.row{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row-m{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:0;background:none;padding:11px 0;text-align:left;min-height:62px;color:var(--ink)}
+.r1{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px}
+.hw{font:700 20px/1.25 var(--serif)}
+.ipa{font:400 15px/1.3 var(--serif);color:var(--ink2)}
+.gl{font-size:14px;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.spk{width:44px;height:44px;border:0;border-radius:50%;background:var(--sunk);display:grid;place-items:center;flex:none;color:var(--ink)}
+.dots{display:flex;gap:3px;flex:none}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--ink)}
+.mbar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--sunk);margin:10px 0 12px}
+.mbar i{display:block;height:100%}
+.m0{background:light-dark(#d6d6d2,#4b4b50)}.m1{background:var(--orange)}.m2{background:var(--hl)}.m3{background:var(--green)}
+.legend{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--ink2)}
+.legend li{display:flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px}
+.legend b{color:var(--ink);font-variant-numeric:tabular-nums}
+.fc7{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.fc7 li{display:grid;grid-template-columns:3.2em minmax(0,1fr) 2.4em;align-items:center;gap:10px;font-size:14px}
+.fc7 .tr{height:10px;background:var(--sunk);border-radius:5px;overflow:hidden}
+.fc7 .tr i{display:block;height:100%;background:var(--ink);border-radius:5px}
+.fc7 b{text-align:right;font-variant-numeric:tabular-nums}
+.how{margin:14px 0 0;padding-left:1.3em;display:grid;gap:10px;font-size:15px}
+/* word parts */
+.prs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px}
+.prs.left{justify-content:flex-start}
+.pr{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px 0 14px;border-radius:999px;border:0;box-shadow:inset 0 0 0 1.5px var(--line);background:var(--raise);color:var(--ink)}
+.pr-l{font-size:13px;font-weight:700;color:var(--ink2)}
+.pr .ipa{font-size:18px;color:var(--ink)}
+.trs{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:6px;font-size:17px;line-height:1.5;text-align:left}
+.trs i,.pos{font:italic 15px var(--serif);color:var(--ink2);margin-right:6px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.tag.hot{background:color-mix(in srgb,var(--hl) 55%,transparent);color:var(--ink)}
+.tip{margin:12px 0 0;padding:10px 14px;border-radius:14px;background:color-mix(in srgb,var(--hl) 30%,transparent);font-size:15px;text-align:left}
+.forms{margin:0;font-size:15px;line-height:1.8}
+.forms span{white-space:nowrap;margin-right:14px}
+.forms b{font:600 16px var(--serif)}
+.defs{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.defs li{font:16px/1.5 var(--serif)}
+.defs .ex{display:flex;gap:8px;align-items:flex-start;border:0;background:none;padding:4px 0 0;text-align:left;color:var(--ink2);font:italic 15.5px/1.45 var(--serif)}
+.defs .ex svg{flex:none;margin-top:1px}
+.sim{white-space:pre-wrap;font-size:15px;line-height:1.65;background:var(--sunk);border-radius:14px;padding:12px 14px;margin:0}
+/* review */
+.rv-top{display:flex;align-items:center;gap:12px;padding-top:14px}
+.prog{flex:1;height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--ink);border-radius:4px;transition:width .3s}
+.left-n{font-size:14px;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fc{margin-top:14px;background:var(--raise);border:1px solid var(--line);border-radius:24px;box-shadow:0 16px 36px -20px rgba(0,0,0,.4);padding:30px 20px 24px;min-height:min(44vh,380px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.fc[data-act]{cursor:pointer}
+.fc-word{font:700 clamp(34px,11vw,54px)/1.12 var(--serif);overflow-wrap:anywhere;text-wrap:balance}
+.fc-word.sm{font-size:clamp(28px,8vw,40px)}
+.fc-hint{margin:10px 0 0;color:var(--ink2);font-size:15px}
+.fc-back{width:100%;display:flex;flex-direction:column;align-items:center;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line)}
+.fc.open .fc-back{animation:rise .28s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fc .trs{width:100%}
+.ex1{border:0;background:var(--sunk);border-radius:14px;padding:10px 14px;text-align:left;width:100%;margin-top:12px;color:var(--ink);font:16px/1.45 var(--serif)}
+.fc-back .tip{width:100%}
+.mynote{margin:10px 0 0;font-size:14px;color:var(--ink2);text-align:left;width:100%}
+.spell{display:flex;gap:8px;width:100%;max-width:380px;margin-top:16px;align-items:center}
+.spell input{flex:1;height:50px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);padding:0 12px;font:20px var(--serif);text-align:center}
+.spell input:focus{outline:none;border-color:var(--ink)}
+.sp-res{margin:8px 0 0;min-height:1.5em;font-size:15px}
+.sp-res .ok{color:var(--good);font-weight:600}
+.hintw{font:18px var(--serif);letter-spacing:.08em;color:var(--ink2)}
+.bigspk{width:104px;height:104px;border-radius:50%;border:0;background:var(--hl);color:var(--on);display:grid;place-items:center}
+.bigspk svg{width:46px;height:46px}
+.rv-act{position:sticky;bottom:0;padding:14px 0 calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,transparent,var(--bg) 14px)}
+.grades{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.g{min-height:66px;border:0;border-radius:16px;color:var(--on);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px}
+.g b{font-size:16px}.g small{font-size:13px;opacity:.78;white-space:nowrap}
+.g0{background:var(--pink)}.g1{background:var(--orange)}.g2{background:var(--green)}.g3{background:var(--blue)}
+.g.sug{box-shadow:0 0 0 3px var(--bg),0 0 0 5.5px var(--ink)}
+.intro{padding:28px 0 30px;text-align:center;display:grid;gap:14px;justify-items:center}
+.intro .num{font-size:clamp(76px,24vw,104px)}
+.intro .sub{margin:0;color:var(--ink2);font-size:16px;max-width:30em}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--sunk);border-radius:12px;padding:3px;gap:3px;width:100%;max-width:440px}
+.seg button{min-height:40px;border:0;border-radius:9px;background:transparent;font-size:15px;font-weight:600;color:var(--ink2);padding:0 6px}
+.seg button[aria-checked=true]{background:var(--raise);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14),inset 0 0 0 1px var(--line)}
+.intro .fine{margin-top:-6px}
+.done{text-align:center;padding:30px 0;display:grid;gap:14px}
+.done h2{font-size:26px;margin:0}
+.done-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.done-stats div{background:var(--sunk);border-radius:16px;padding:14px 6px;display:grid}
+.done-stats b{font-size:30px;font-variant-numeric:tabular-nums;line-height:1.2}
+.done-stats span{font-size:14px;color:var(--ink2)}
+/* library */
+.search{display:flex;gap:8px;padding-top:14px}
+.search input{flex:1;height:46px;border:0;box-shadow:inset 0 0 0 1.5px var(--line);border-radius:12px;background:var(--sunk);padding:0 14px;font-size:16px}
+.search input:focus,textarea:focus{outline:none;box-shadow:inset 0 0 0 2px var(--ink)}
+.search select{height:46px;border:0;box-shadow:inset 0 0 0 1.5px var(--line);border-radius:12px;background:var(--raise);padding:0 10px;font-size:15px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips .chip{flex:none}
+.libcount{display:flex;justify-content:space-between;align-items:center;margin:4px 0 0;font-size:14px;color:var(--ink2)}
+.grp{display:flex;justify-content:space-between;font:600 14px var(--sans);color:var(--ink2);margin:16px 0 0;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.empty{padding:44px 0;text-align:center;color:var(--ink2)}
+/* sheet */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.4)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;margin:0 auto;max-width:680px;max-height:92%;display:flex;flex-direction:column;background:var(--raise);border-radius:22px 22px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.25);transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.sheet.in{transform:none}
+.sh-in{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 20px calc(28px + env(safe-area-inset-bottom))}
+.sh-bar{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--raise);padding:8px 0 4px;min-height:56px}
+.sh-bar h2{margin:0}
+.d-w{font:700 clamp(32px,9vw,46px)/1.12 var(--serif);margin:0 0 4px;overflow-wrap:anywhere}
+textarea{width:100%;border:0;box-shadow:inset 0 0 0 1.5px var(--line);border-radius:12px;background:var(--sunk);padding:10px 12px;font-size:16px;resize:vertical;color:var(--ink)}
+.mem{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.mem div{background:var(--sunk);border-radius:12px;padding:8px 10px}
+.mem dt{font-size:13px;color:var(--ink2)}
+.mem dd{margin:0;font-weight:650;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.set{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.set>span{font-size:16px}
+.set .seg{max-width:210px;flex:none;width:210px}
+.toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));z-index:40;transform:translate(-50%,-14px);box-shadow:0 8px 24px rgba(0,0,0,.22);opacity:0;pointer-events:none;background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:14px;font-size:15px;line-height:1.45;width:max-content;max-width:min(92vw,520px);text-align:center;transition:opacity .25s,transform .25s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (max-width:380px){.cap .add{padding:0 16px}.g b{font-size:15px}.mem{grid-template-columns:repeat(2,minmax(0,1fr))}.set .seg{width:180px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="hd">
+      <h1 class="logo"><span class="mk">生词</span>本</h1>
+      <button class="icon" data-act="gear" aria-label="设置"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 7h9M17.5 7H20M4 17h3.5M12 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15.2" cy="7" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9.8" cy="17" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="页面">
+      <button role="tab" aria-selected="true" data-act="tab" data-v="home">记录</button>
+      <button role="tab" aria-selected="false" data-act="tab" data-v="review">复习<b class="badge" id="badge" hidden></b></button>
+      <button role="tab" aria-selected="false" data-act="tab" data-v="lib">词库</button>
+    </nav>
+  </div>
+</header>
+<main>
+  <section id="v-home">
+    <form class="cap" id="cap" autocomplete="off">
+      <div class="wrap">
+        <label class="cap-l" for="w">遇到生词，马上记下</label>
+        <div class="cap-row">
+          <input id="w" type="text" placeholder="输入英文单词或短语" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" maxlength="300">
+          <button class="btn ink add" type="submit">记下</button>
+        </div>
+        <ul class="ac" id="ac" hidden></ul>
+        <input id="nt" class="note" type="text" placeholder="在哪遇到的 / 原句（可选）" enterkeyhint="go" maxlength="300">
+        <p class="hint">边输入边出结果，点一下就记下。拼不准、只记得中文也能查。</p>
+      </div>
+    </form>
+    <div class="wrap" id="home"></div>
+  </section>
+  <section id="v-review" hidden><div class="wrap" id="rv"></div></section>
+  <section id="v-lib" hidden>
+    <div class="wrap">
+      <div class="search">
+        <input id="q" type="search" placeholder="搜单词、中文或备注" aria-label="搜索单词" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <select id="sort" aria-label="排序"><option value="new">最新</option><option value="az">A–Z</option><option value="hard">最常忘</option></select>
+      </div>
+      <div class="chips" id="flt"></div>
+      <div id="lib"></div>
+    </div>
+  </section>
+</main>
+<div class="scrim" id="scrim" data-act="close" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="详情" hidden><div class="sh-in" id="shIn"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="imf" accept="application/json,.json,.txt" hidden>
+<script>
+{
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const str=v=>typeof v==='string'?v:v==null?'':String(v);
+const A=v=>Array.isArray(v)?v:[];
+const clone=o=>JSON.parse(JSON.stringify(o));
+const norm=s=>str(s).toLowerCase().replace(/[’‘`]/g,"'").replace(/\s+/g,' ').trim();
+const CJK=/[㐀-鿿]/;
+const MIN=6e4,DAY=864e5,KEY='shengciben.v1';
+const DIX={"a_":"a0","aa":"a0","ab":"a0","ac":"a0","ad":"a0","ae":"a0","af":"a0","ag":"a0","ah":"a0","ai":"a0","aj":"a0","ak":"a0","al":"a1","am":"a1","an":"a1","ao":"a1","ap":"a1","aq":"a1","ar":"a1","as":"a2","at":"a2","au":"a2","av":"a2","aw":"a2","ax":"a2","ay":"a2","az":"a2","b_":"b0","ba":"b0","bb":"b0","bc":"b0","bd":"b0","be":"b0","bf":"b0","bg":"b0","bh":"b0","bi":"b1","bj":"b1","bk":"b1","bl":"b1","bm":"b1","bn":"b1","bo":"b1","bp":"b1","br":"b2","bs":"b2","bt":"b2","bu":"b2","bv":"b2","bw":"b2","bx":"b2","by":"b2","c_":"c0","ca":"c0","cb":"c0","cc":"c0","cd":"c0","ce":"c0","cf":"c0","cg":"c0","ch":"c1","ci":"c1","cj":"c1","cl":"c1","cm":"c1","cn":"c1","co_":"c1","coa":"c1","cob":"c1","coc":"c1","cod":"c1","coe":"c1","cof":"c1","cog":"c1","coh":"c1","coi":"c1","coj":"c1","cok":"c1","col":"c2","com":"c2","con":"c3","coo":"c3","cop":"c3","coq":"c3","cor":"c3","cos":"c3","cot":"c3","cou":"c3","cov":"c3","cow":"c3","cox":"c3","coy":"c3","coz":"c3","cp":"c3","cr":"c4","cs":"c4","ct":"c4","cu":"c4","cv":"c4","cw":"c4","cy":"c4","cz":"c4","d_":"d0","da":"d0","db":"d0","dc":"d0","dd":"d0","de":"d0","df":"d0","dg":"d0","dh":"d0","di":"d1","dj":"d1","dk":"d1","dl":"d1","dm":"d1","dn":"d1","do":"d1","dp":"d1","dr":"d2","ds":"d2","dt":"d2","du":"d2","dv":"d2","dw":"d2","dx":"d2","dy":"d2","e_":"e0","ea":"e0","eb":"e0","ec":"e0","ed":"e0","ee":"e0","ef":"e0","eg":"e0","eh":"e0","ei":"e0","ej":"e0","ek":"e0","el":"e0","em":"e0","en":"e0","eo":"e0","ep":"e0","eq":"e0","er":"e0","es":"e1","et":"e1","eu":"e1","ev":"e1","ew":"e1","ex":"e1","ey":"e1","ez":"e1","f_":"f0","fa":"f0","fb":"f0","fc":"f0","fd":"f0","fe":"f0","ff":"f0","fg":"f0","fh":"f0","fi":"f0","fj":"f0","fl":"f1","fm":"f1","fn":"f1","fo":"f1","fp":"f1","fr":"f1","fs":"f1","ft":"f1","fu":"f1","fw":"f1","fx":"f1","fy":"f1","g_":"g0","ga":"g0","gb":"g0","gc":"g0","gd":"g0","ge":"g0","gf":"g0","gg":"g0","gh":"g0","gi":"g0","gk":"g0","gl":"g0","gm":"g0","gn":"g0","go":"g0","gp":"g0","gr":"g1","gs":"g1","gt":"g1","gu":"g1","gw":"g1","gx":"g1","gy":"g1","h_":"h0","ha":"h0","hb":"h0","hc":"h0","hd":"h0","he":"h0","hf":"h0","hg":"h0","hh":"h0","hi":"h0","hj":"h0","hk":"h0","hl":"h0","hm":"h0","hn":"h0","ho":"h1","hp":"h1","hq":"h1","hr":"h1","hs":"h1","ht":"h1","hu":"h1","hv":"h1","hw":"h1","hy":"h1","hz":"h1","i_":"i0","ia":"i0","ib":"i0","ic":"i0","id":"i0","ie":"i0","if":"i0","ig":"i0","ii":"i0","ik":"i0","il":"i0","im":"i0","in":"i1","io":"i2","ip":"i2","iq":"i2","ir":"i2","is":"i2","it":"i2","iu":"i2","iv":"i2","iw":"i2","ix":"i2","iz":"i2","j_":"j0","ja":"j0","jb":"j0","jc":"j0","jd":"j0","je":"j0","jf":"j0","jg":"j0","jh":"j0","ji":"j0","jj":"j0","jk":"j0","jl":"j0","jm":"j0","jn":"j0","jo":"j0","jp":"j0","jr":"j0","js":"j0","jt":"j0","ju":"j0","jv":"j0","jw":"j0","k_":"k0","ka":"k0","kb":"k0","kc":"k0","kd":"k0","ke":"k0","kg":"k0","kh":"k0","ki":"k0","kj":"k0","kl":"k0","km":"k0","kn":"k0","ko":"k0","kp":"k0","kr":"k0","ku":"k0","kv":"k0","kw":"k0","ky":"k0","l_":"l0","la":"l0","lb":"l0","lc":"l0","ld":"l0","le":"l0","lf":"l0","lg":"l0","lh":"l0","li":"l0","lj":"l0","ll":"l0","lm":"l0","ln":"l0","lo":"l1","lp":"l1","lr":"l1","ls":"l1","lt":"l1","lu":"l1","lv":"l1","lw":"l1","lx":"l1","ly":"l1","m_":"m0","ma":"m0","mb":"m0","mc":"m0","md":"m0","me":"m1","mf":"m1","mg":"m1","mh":"m1","mi":"m1","mj":"m1","mk":"m1","ml":"m1","mm":"m1","mn":"m1","mo":"m2","mp":"m2","mr":"m2","ms":"m2","mt":"m2","mu":"m2","mv":"m2","mw":"m2","mx":"m2","my":"m2","n_":"n0","na":"n0","nb":"n0","nc":"n0","nd":"n0","ne":"n0","nf":"n0","ng":"n0","nh":"n0","ni":"n0","nj":"n0","nk":"n0","nl":"n0","nm":"n0","nn":"n0","no":"n0","np":"n0","nr":"n0","ns":"n0","nt":"n0","nu":"n0","nv":"n0","nw":"n0","ny":"n0","nz":"n0","o_":"o0","oa":"o0","ob":"o0","oc":"o0","od":"o0","oe":"o0","of":"o0","og":"o0","oh":"o0","oi":"o0","ok":"o0","ol":"o0","om":"o0","on":"o0","oo":"o0","op":"o0","or":"o0","os":"o0","ot":"o0","ou":"o0","ov":"o1","ow":"o1","ox":"o1","oy":"o1","oz":"o1","p_":"p0","pa":"p0","pb":"p0","pc":"p0","pd":"p0","pe":"p0","pf":"p0","pg":"p0","ph":"p1","pi":"p1","pj":"p1","pk":"p1","pl":"p1","pm":"p1","pn":"p1","po":"p1","pp":"p2","pr":"p2","ps":"p2","pt":"p2","pu":"p3","pv":"p3","pw":"p3","py":"p3","q_":"q0","qa":"q0","qb":"q0","qc":"q0","qe":"q0","qi":"q0","qp":"q0","qq":"q0","qt":"q0","qu":"q0","qv":"q0","qw":"q0","r_":"r0","ra":"r0","rb":"r0","rc":"r0","rd":"r0","re":"r1","rf":"r2","rg":"r2","rh":"r2","ri":"r2","rj":"r2","rk":"r2","rl":"r2","rm":"r2","rn":"r2","ro":"r2","rp":"r2","rr":"r2","rs":"r2","rt":"r2","ru":"r2","rv":"r2","rw":"r2","rx":"r2","ry":"r2","s_":"s0","sa":"s0","sb":"s0","sc":"s0","sd":"s0","se":"s1","sf":"s1","sg":"s1","sh":"s1","si":"s2","sj":"s2","sk":"s2","sl":"s2","sm":"s2","sn":"s2","so":"s2","sp":"s3","sq":"s3","sr":"s3","ss":"s3","st":"s4","su":"s5","sv":"s5","sw":"s5","sx":"s5","sy":"s5","sz":"s5","t_":"t0","ta":"t0","tb":"t0","tc":"t0","td":"t0","te":"t0","tg":"t0","th":"t0","ti":"t1","tj":"t1","tk":"t1","tl":"t1","tm":"t1","tn":"t1","to":"t1","tp":"t1","tq":"t1","tr":"t1","ts":"t1","tt":"t1","tu":"t2","tv":"t2","tw":"t2","tx":"t2","ty":"t2","u_":"u0","ua":"u0","ub":"u0","uc":"u0","ud":"u0","ue":"u0","uf":"u0","ug":"u0","uh":"u0","ui":"u0","uj":"u0","uk":"u0","ul":"u0","um":"u0","un":"u0","uo":"u0","up":"u0","ur":"u0","us":"u0","ut":"u0","uv":"u0","uw":"u0","ux":"u0","uz":"u0","v_":"v0","va":"v0","vc":"v0","vd":"v0","ve":"v0","vg":"v0","vh":"v0","vi":"v0","vj":"v0","vl":"v0","vm":"v0","vo":"v0","vp":"v0","vr":"v0","vs":"v0","vt":"v0","vu":"v0","vw":"v0","vy":"v0","vz":"v0","w_":"w0","wa":"w0","wb":"w0","wc":"w0","wd":"w0","we":"w0","wf":"w0","wg":"w0","wh":"w0","wi":"w0","wj":"w0","wl":"w0","wm":"w0","wo":"w1","wp":"w1","wr":"w1","ws":"w1","wt":"w1","wu":"w1","ww":"w1","wy":"w1","x_":"x0","xa":"x0","xe":"x0","xh":"x0","xi":"x0","xl":"x0","xm":"x0","xt":"x0","xu":"x0","xv":"x0","xx":"x0","xy":"x0","y_":"y0","ya":"y0","yd":"y0","ye":"y0","yi":"y0","ym":"y0","yo":"y0","yp":"y0","yr":"y0","yt":"y0","yu":"y0","yv":"y0","z_":"z0","za":"z0","zb":"z0","ze":"z0","zh":"z0","zi":"z0","zl":"z0","zo":"z0","zu":"z0","zy":"z0","zz":"z0"},NS=9;
+const TAGN={z:'中考',g:'高考','4':'四级','6':'六级',k:'考研',t:'托福',i:'雅思',r:'GRE'};
+const EXN={p:'过去式',d:'过去分词',i:'现在分词','3':'三单',s:'复数',r:'比较级',t:'最高级'};
+const LVN=['新词','学习中','熟悉','已掌握'],GN=['忘了','模糊','记得','太简单'];
+const MODES={word:['看词想义','先自己读出来、想想意思，再看答案'],listen:['听音拼写','先听发音，试着把它拼出来'],zh:['看中文想词','看中文意思，回想英文单词']};
+const IC={spk:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3.5 9.2h3.4L12 5v14l-5.1-4.2H3.5z" fill="currentColor"/><path d="M15.4 8.6a4.8 4.8 0 0 1 0 6.8M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+x:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+ok:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="vertical-align:-3px"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
+
+let words={},S={accent:'us',voice:'real',auto:true,rate:0.9,limit:30,mode:'word',tip:true,offline:0};
+let tab='home',sheetKind=null,openId=null,libMax=200,flt='all',R=null,doneShown=false,lastForgot=[],armed='',armT=0,hideT=0,toastT=0;
+let pick=null,acRows=[],acSeq=0,dlBusy=false,dlText='',webOff=false;
+let EMBED=false;try{EMBED=window.top!==window.self}catch(e){EMBED=true}
+
+/* ---------- small helpers ---------- */
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),3600)}
+const ipa=v=>{v=str(v).trim();return!v?'':/^[\/\[]/.test(v)?v:'/'+v+'/'};
+const W2=c=>c.word||c.text||'';
+const trLines=tr=>str(tr).split('\n').map(l=>l.trim()).filter(Boolean);
+function trHTML(tr,max){return trLines(tr).slice(0,max||9).map(l=>{const m=l.match(/^([a-z]{1,6}\.)\s*(.*)$/);return`<li>${m?`<i>${esc(m[1])}</i>${esc(m[2])}`:esc(l)}</li>`}).join('')}
+const gloss=c=>c.d?trLines(c.d.tr).slice(0,2).join('；'):c.note?'备注：'+c.note:'';
+const ymd=()=>{const d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')};
+
+/* ---------- pronunciation ---------- */
+const synth='speechSynthesis' in window?window.speechSynthesis:null;
+let voices=[],curU=null;
+function loadVoices(){try{voices=synth.getVoices()||[]}catch(e){voices=[]}}
+if(synth){loadVoices();try{synth.addEventListener('voiceschanged',loadVoices)}catch(e){}}
+function voiceFor(lang){
+  const want=lang.toLowerCase(),m=voices.filter(v=>str(v.lang).toLowerCase().replace('_','-')===want);
+  const pref=want==='en-gb'?['Daniel','Serena','Kate','Arthur','Martha','Google UK']:['Samantha','Ava','Allison','Alex','Nicky','Google US'];
+  for(const p of pref){const v=m.find(v=>str(v.name).includes(p));if(v)return v}
+  return m.find(v=>v.localService)||m[0]||null;
+}
+function tts(text,acc,slow){
+  if(!synth){toast('这个设备不支持朗读');return}
+  try{
+    const lang=acc==='uk'?'en-GB':'en-US',u=new SpeechSynthesisUtterance(text),v=voiceFor(lang);
+    u.lang=lang;if(v)u.voice=v;u.rate=slow?0.6:(Number(S.rate)||0.9);curU=u;
+    if(synth.speaking||synth.pending){synth.cancel();setTimeout(()=>{try{synth.speak(u)}catch(e){}},80)}else synth.speak(u);
+  }catch(e){}
+}
+const player=new Audio();player.preload='none';
+function say(text,o={}){
+  text=str(text).trim();if(!text)return;
+  const acc=o.accent||S.accent;
+  try{if(synth&&(synth.speaking||synth.pending))synth.cancel()}catch(e){}
+  if(EMBED||S.voice==='tts'||o.slow||navigator.onLine===false||!/^[\x20-\x7e’‘]+$/.test(text)){tts(text,acc,o.slow);return}
+  let fell=false;const fb=()=>{if(fell)return;fell=true;tts(text,acc,o.slow)};
+  try{player.pause()}catch(e){}
+  player.onerror=fb;
+  player.src='https://dict.youdao.com/dictvoice?audio='+encodeURIComponent(text)+'&type='+(acc==='uk'?1:2);
+  try{const p=player.play();if(p&&p.catch)p.catch(e=>{if(!e||e.name!=='AbortError')fb()})}catch(e){fb()}
+}
+
+/* ---------- the offline dictionary (ECDICT) ---------- */
+const chunkP=new Map();
+function chunkName(k){
+  const a=k[0]||'',b=k[1]||'',c=k[2]||'',L=/^[a-z]$/;
+  if(!L.test(a))return DIX.__;
+  const p2=a+(L.test(b)?b:'_');
+  return DIX[p2+(L.test(c)?c:'_')]||DIX[p2];
+}
+function loadChunk(name){
+  if(!name)return Promise.resolve({});
+  let p=chunkP.get(name);
+  if(!p){p=fetch('dict/'+name+'.json').then(r=>{if(!r.ok)throw new Error('http '+r.status);return r.json()});chunkP.set(name,p);p.catch(()=>chunkP.delete(name))}
+  return p;
+}
+async function rawGet(k){const c=await loadChunk(chunkName(k));return Object.prototype.hasOwnProperty.call(c,k)?c[k]:undefined}
+function info(key,e){return{key,hw:str(e[0]||key),ph:str(e[1]),tr:str(e[2]),rank:Number(e[3])||0,tags:str(e[4]),ex:str(e[5]),col:Number(e[6])||0,ox:Number(e[7])||0,roots:A(e[8]),sg:Number.isInteger(e[9])?e[9]:-1}}
+async function find(q,depth=0){
+  const k=norm(q);if(!k||depth>2)return null;
+  const e=await rawGet(k);
+  if(typeof e==='string'&&e[0]==='='){const[lem,kind]=e.slice(1).split('|'),lk=norm(lem),le=await rawGet(lk);return Array.isArray(le)?{inf:info(lk,le),form:k,kind:str(kind)}:null}
+  if(Array.isArray(e))return{inf:info(k,e)};
+  for(const a of[k.replace(/-/g,' '),k.replace(/ /g,'-'),k.replace(/-/g,''),k.replace(/[^a-z' -]/g,'')])if(a&&a!==k){const r=await find(a,depth+1);if(r)return r}
+  return null;
+}
+function osa(a,b,max){
+  const n=a.length,m=b.length;if(Math.abs(n-m)>max)return max+1;
+  let pp=null,p=Array.from({length:m+1},(_,j)=>j);
+  for(let i=1;i<=n;i++){const c=[i];let best=i;
+    for(let j=1;j<=m;j++){let v=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));
+      if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])v=Math.min(v,pp[j-2]+1);c.push(v);if(v<best)best=v}
+    if(best>max)return max+1;pp=p;p=c}
+  return p[m];
+}
+async function suggest(q){
+  const k=norm(q);if(k.length<3)return[];
+  const max=k.length<=5?1:2,names=new Set([chunkName(k),chunkName(k[0]+k.slice(2)),chunkName(k[1]+k[0]+k.slice(2))]),cands=[];
+  for(const n of names){let c;try{c=await loadChunk(n)}catch(e){continue}
+    for(const key in c){if(Math.abs(key.length-k.length)>max||(key.includes(' ')!==k.includes(' ')))continue;
+      const d=osa(k,key,max);if(d>max)continue;const e=c[key];
+      cands.push([d,typeof e==='string'?9e5:(e[3]||5e5),typeof e==='string'?norm(e.slice(1).split('|')[0]):key])}}
+  cands.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const out=[];for(const c of cands){if(!out.includes(c[2]))out.push(c[2]);if(out.length>=6)break}
+  const res=[];for(const w of out){const f=await find(w);if(f&&!res.some(r=>r.inf.key===f.inf.key))res.push(f)}
+  return res;
+}
+let zhP=null;
+function loadZh(){
+  if(!zhP){zhP=fetch('dict/zh.txt').then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>{const m=new Map();for(const ln of t.split('\n')){const i=ln.indexOf('\t');if(i>0)m.set(ln.slice(0,i),ln.slice(i+1).split(','))}return m});zhP.catch(()=>{zhP=null})}
+  return zhP;
+}
+async function zhFind(q){
+  const m=await loadZh(),sc=new Map(),add=(w,s)=>{if(!sc.has(w)||sc.get(w)>s)sc.set(w,s)};
+  (m.get(q)||[]).forEach((w,i)=>add(w,i));
+  if(sc.size<10)for(const[t,ws]of m)if(t!==q&&t.includes(q))ws.slice(0,3).forEach((w,i)=>add(w,100+t.length*4+i));
+  if(sc.size<6&&q.length>=3)for(const[t,ws]of m)if(t.length>=2&&q.includes(t))ws.slice(0,4).forEach((w,i)=>add(w,400-t.length*8+i));
+  const res=[];
+  for(const[w]of[...sc.entries()].sort((a,b)=>a[1]-b[1]).slice(0,12)){try{const f=await find(w);if(f)res.push(f)}catch(e){}}
+  return res;
+}
+const simP=new Map();
+function loadSim(gid){const n=Math.floor(gid/150);if(!simP.has(n)){const p=fetch('dict/sim'+n+'.json').then(r=>{if(!r.ok)throw 0;return r.json()});simP.set(n,p);p.catch(()=>simP.delete(n))}return simP.get(n).then(a=>a[gid%150])}
+
+/* ---------- online extras: English definitions and examples (free, no key) ---------- */
+const webBusy=new Set(),webQ=[];
+function enrichLater(id){if(!webQ.includes(id))webQ.push(id);pumpWeb()}
+async function pumpWeb(){
+  if(webBusy.size)return;
+  while(webQ.length){const id=webQ.shift();await enrich(id)}
+}
+async function enrich(id){
+  const c=words[id];if(EMBED||webOff||!c||c.st!=='ok'||webBusy.has(id)||navigator.onLine===false)return;
+  if(c.w&&Date.now()-c.w.at<120*DAY)return;
+  webBusy.add(id);if(openId===id)renderDetail();
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),8000);
+  try{
+    const r=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(c.key),{signal:ctl.signal});
+    if(!r.ok&&r.status!==404)throw 0;
+    const w={us:'',uk:'',at:Date.now(),defs:[]},j=r.ok?await r.json():[];
+    for(const en of A(j)){
+      for(const p of A(en&&en.phonetics)){const a=str(p&&p.audio),tx=str(p&&p.text);if(!tx)continue;if(/-us\.mp3$/.test(a)&&!w.us)w.us=tx;else if(/-uk\.mp3$/.test(a)&&!w.uk)w.uk=tx}
+      for(const mm of A(en&&en.meanings))for(const d of A(mm&&mm.definitions).slice(0,2))if(w.defs.length<6&&d&&d.definition)w.defs.push({pos:str(mm.partOfSpeech),en:str(d.definition),ex:str(d.example)})
+    }
+    const cur=words[id];if(cur){const n=clone(cur);n.w=w;put(fix(n,id))}
+  }catch(e){if(e&&e.name==='TypeError'&&navigator.onLine!==false)webOff=true}finally{clearTimeout(t);webBusy.delete(id);if(openId===id)renderDetail()}
+}
+
+/* ---------- cards ---------- */
+function fix(c,id){
+  c=c&&typeof c==='object'?c:{};const now=Date.now();
+  c.id=str(id||c.id);c.text=str(c.text||c.word).slice(0,120);c.word=str(c.word||c.text).slice(0,120);c.key=norm(c.key||c.word);
+  c.note=str(c.note).slice(0,1000);c.form=str(c.form).slice(0,80);c.kind=str(c.kind).slice(0,12);
+  c.st=['ok','nf','pd'].includes(c.st)?c.st:'nf';
+  const d=c.d&&typeof c.d==='object'?c.d:null;
+  c.d=d?{ph:str(d.ph).slice(0,80),tr:str(d.tr).slice(0,800),tags:str(d.tags).slice(0,10),ex:str(d.ex).slice(0,240),col:Number(d.col)||0,ox:Number(d.ox)||0,rank:Number(d.rank)||0,sg:Number.isInteger(d.sg)?d.sg:-1,
+    roots:A(d.roots).slice(0,3).map(x=>[str(x&&x[0]).slice(0,40),str(x&&x[1]).slice(0,80)])}:null;
+  if(c.st==='ok'&&!c.d)c.st='nf';
+  const w=c.w&&typeof c.w==='object'?c.w:null;
+  c.w=w?{us:str(w.us).slice(0,60),uk:str(w.uk).slice(0,60),at:Number(w.at)||0,defs:A(w.defs).slice(0,6).map(x=>({pos:str(x&&x.pos).slice(0,20),en:str(x&&x.en).slice(0,300),ex:str(x&&x.ex).slice(0,300)}))}:null;
+  c.created=Number(c.created)||now;c.updated=Number(c.updated)||c.created;c.seen=Number(c.seen)||1;
+  const s=c.srs&&typeof c.srs==='object'?c.srs:{};
+  c.srs={due:Number(s.due)||c.created,iv:Number(s.iv)||0,ef:Number(s.ef)||2.5,reps:Number(s.reps)||0,lapses:Number(s.lapses)||0,
+    state:['new','learning','review'].includes(s.state)?s.state:'new',last:Number(s.last)||0,
+    h:A(s.h).filter(x=>Array.isArray(x)&&Number(x[0])).map(x=>[Number(x[0]),Number(x[1])||0]).slice(-40)};
+  return c;
+}
+const dFrom=f=>({ph:f.ph,tr:f.tr,tags:f.tags,ex:f.ex,col:f.col,ox:f.ox,rank:f.rank,sg:f.sg,roots:f.roots});
+const newId=()=>'w'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const canReview=c=>c.st==='ok'||(c.st==='nf'&&!!c.note);
+const isDue=c=>canReview(c)&&c.srs.due<=Date.now();
+function level(c){const s=c.srs;if(!s.h.length&&s.state!=='review')return 0;if(s.state!=='review'||s.iv<7)return 1;return s.iv<30?2:3}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({words,S}));return true}catch(e){toast('保存失败：手机存储空间不够了');return false}}
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY)||'null');if(o&&typeof o==='object'){for(const[id,c]of Object.entries(o.words||{}))words[id]=fix(c,id);S={...S,...(o.S||{})}}}catch(e){}}
+let persisted=false;
+function put(c){c.updated=Math.max(Date.now(),((words[c.id]||{}).updated||0)+1);words[c.id]=c;save();
+  if(!persisted){persisted=true;try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}}}
+function drop(id){delete words[id];save()}
+function bump(id,note,form){
+  const c=clone(words[id]);c.seen=(c.seen||1)+1;
+  if(note&&!c.note.includes(note))c.note=(c.note?c.note+'；':'')+note;
+  if(form&&!c.form)c.form=form;
+  if(canReview(c)&&c.srs.due>Date.now())c.srs.due=Date.now();
+  put(fix(c,id));return words[id];
+}
+function addFound(f,note,typed){
+  const key=f.inf.key,d=Object.values(words).find(c=>c.key===key);
+  if(d)return{dup:true,c:bump(d.id,note,f.form)};
+  const c=fix({text:typed||f.inf.hw,word:f.inf.hw,key,note,st:'ok',d:dFrom(f.inf),form:f.form||'',kind:f.kind||'',created:Date.now()},newId());
+  put(c);enrichLater(c.id);return{dup:false,c};
+}
+function addRaw(t,note,st){
+  const k=norm(t),d=Object.values(words).find(c=>c.key===k);
+  if(d)return{dup:true,c:bump(d.id,note)};
+  const c=fix({text:t,word:t,key:k,note,st,created:Date.now()},newId());put(c);return{dup:false,c};
+}
+function addedToast(rs){
+  const n=rs.filter(r=>!r.dup),d=rs.filter(r=>r.dup);
+  if(rs.length===1){const c=rs[0].c;
+    if(d.length)toast(`「${W2(c)}」已经在词库里了，这是第 ${c.seen} 次遇到，已排进今天的复习`);
+    else if(c.st==='ok'){const m=trLines(c.d.tr)[0]||'';toast(`已记下 ${W2(c)}  ${ipa(c.d.ph)}  ${m.length>28?m.slice(0,28)+'…':m}`)}
+    else if(c.st==='pd')toast(`已记下「${W2(c)}」，联网后会自动查释义`);
+    else toast(`已记下「${W2(c)}」`);
+  }else if(rs.length)toast(`记下 ${n.length} 个新词`+(d.length?`，${d.length} 个已在词库里（已排进今天复习）`:''));
+}
+async function addFrom(raw,note){
+  raw=raw.trim();if(!raw)return;
+  if(CJK.test(raw)){zhSearch(raw.replace(/\s+/g,''),note);return}
+  const parts=raw.split(/[,，;；、\n]+/).map(s=>s.trim()).filter(Boolean).slice(0,20),rs=[],miss=[];
+  for(const p of parts){
+    const t=p.replace(/\s+/g,' ').slice(0,80);let f=null,failed=false;
+    try{f=await find(t)}catch(e){failed=true}
+    if(failed)rs.push(addRaw(t,note,'pd'));
+    else if(f){const r=addFound(f,note,t);if(f.form&&!r.dup)r.c.form=f.form;rs.push(r)}
+    else miss.push(t);
+  }
+  addedToast(rs);
+  if(miss.length)showSuggest(miss[0],note);
+  render();
+}
+async function retryPending(){
+  if(navigator.onLine===false)return;let n=0;
+  for(const c of Object.values(words).filter(c=>c.st==='pd')){
+    let f=null;try{f=await find(c.text)}catch(e){return}
+    const x=clone(c);
+    if(f){const dup=Object.values(words).find(o=>o.id!==c.id&&o.key===f.inf.key);if(dup){drop(c.id);bump(dup.id,c.note);continue}
+      x.word=f.inf.hw;x.key=f.inf.key;x.d=dFrom(f.inf);x.st='ok';x.form=f.form||'';x.kind=f.kind||'';n++}
+    else x.st='nf';
+    put(fix(x,c.id));if(x.st==='ok')enrichLater(c.id);
+  }
+  if(n)toast(`联网后补查了 ${n} 个词`);render();
+}
+
+/* ---------- pick panel: Chinese → English, spelling suggestions ---------- */
+function showPick(p){pick=p;renderPick()}
+async function zhSearch(q,note){
+  showPick({kind:'zh',q,note,loading:true});
+  let items;try{items=await zhFind(q)}catch(e){showPick({kind:'zh',q,note,error:'需要联网才能用中文查词（或在设置里下载离线词典）'});return}
+  showPick({kind:'zh',q,note,items});
+}
+async function showSuggest(q,note){
+  showPick({kind:'sp',q,note,loading:true});
+  let items=[];try{items=await suggest(q)}catch(e){}
+  showPick({kind:'sp',q,note,items});
+}
+function foundRow(f,i,act){
+  const inf=f.inf;
+  return`<li class="row"><button class="row-m" data-act="${act}" data-i="${i}"><span class="r1"><span class="hw">${esc(inf.hw)}</span><span class="ipa">${esc(ipa(inf.ph))}</span></span><span class="gl">${esc(trLines(inf.tr).slice(0,2).join('；'))}</span></button><button class="spk" data-act="say-t" data-t="${esc(inf.hw)}" aria-label="朗读 ${esc(inf.hw)}">${IC.spk}</button></li>`;
+}
+function renderPick(){
+  const box=$('#pick');if(!box)return;
+  if(!pick){box.innerHTML='';box.hidden=true;return}
+  const p=pick,zh=p.kind==='zh';
+  let h=`<div class="pick-h"><b>${zh?`「${esc(p.q)}」的英文`:`词典里没有「${esc(p.q)}」`}</b><button class="icon" data-act="pick-x" aria-label="关闭">${IC.x}</button></div>`;
+  if(p.loading)h+='<p class="fine">正在查…</p>';
+  else if(p.error)h+=`<p class="bad">${esc(p.error)}</p>`;
+  else if(!p.items.length)h+=`<p class="fine">${zh?'没找到对应的英文词，换个更短的说法试试。':'也没找到拼写相近的词。'}</p>`;
+  else h+=`${zh?'<p class="fine">点一下就记下：</p>':'<p class="fine">你是不是要找：</p>'}<ul class="list">${p.items.map((f,i)=>foundRow(f,i,'pick-add')).join('')}</ul>`;
+  if(!zh&&!p.loading)h+=`<button class="link" data-act="save-raw">仍然记下「${esc(p.q)}」（没有释义，可以在备注里自己写）</button>`;
+  box.innerHTML=h;box.hidden=false;
+}
+
+/* ---------- autocomplete while typing ---------- */
+async function autocomplete(v){
+  const k=norm(v),seq=++acSeq;
+  if(k.length<2||CJK.test(k)||/[,，;；、]/.test(k)){acRows=[];renderAC();return}
+  let c;try{c=await loadChunk(chunkName(k))}catch(e){if(seq===acSeq){acRows=[];renderAC()}return}
+  if(seq!==acSeq)return;
+  const hits=[];
+  for(const key in c)if(key.startsWith(k)){const e=c[key];
+    if(typeof e==='string'){if(key===k)hits.push([-1,key])}
+    else hits.push([key===k?-1:(e[3]||(key.includes(' ')?9e5:8e5)),key])}
+  hits.sort((a,b)=>a[0]-b[0]);
+  const rows=[];
+  for(const[,key]of hits.slice(0,6)){const f=await find(key);if(f&&!rows.some(r=>r.inf.key===f.inf.key))rows.push(f)}
+  if(seq===acSeq){acRows=rows;renderAC()}
+}
+function renderAC(){
+  const ul=$('#ac');
+  if(!acRows.length){ul.innerHTML='';ul.hidden=true;return}
+  ul.innerHTML=acRows.map((f,i)=>{const inf=f.inf;return`<li><button class="ac-m" type="button" data-act="ac-add" data-i="${i}"><span class="r1"><span class="hw">${esc(inf.hw)}</span><span class="ipa">${esc(ipa(inf.ph))}</span></span><span class="gl">${f.form?`${esc(f.form)} → `:''}${esc(trLines(inf.tr).slice(0,2).join('；'))}</span></button><button class="spk" type="button" data-act="say-t" data-t="${esc(inf.hw)}" aria-label="朗读">${IC.spk}</button><button class="ac-add" type="button" data-act="ac-add" data-i="${i}">记下</button></li>`}).join('');
+  ul.hidden=false;
+}
+
+/* ---------- dates + spaced repetition ---------- */
+const dkey=t=>{const d=new Date(t);return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()};
+function dayStart(t=Date.now()){const d=new Date(t);if(d.getHours()<4)d.setDate(d.getDate()-1);d.setHours(4,0,0,0);return d.getTime()}
+function dueIn(n){const d=new Date(dayStart());d.setDate(d.getDate()+n);return d.getTime()}
+const fmtIv=d=>d<=1?'1 天':d<60?d+' 天':d<365?Math.round(d/30)+' 个月':'1 年';
+function dayLabel(t){const a=new Date();a.setHours(0,0,0,0);const b=new Date(t);b.setHours(0,0,0,0);const n=Math.round((a-b)/DAY);
+  if(n===0)return'今天';if(n===1)return'昨天';if(n===2)return'前天';
+  return(b.getFullYear()!==a.getFullYear()?b.getFullYear()+'年':'')+(b.getMonth()+1)+'月'+b.getDate()+'日 周'+'日一二三四五六'[b.getDay()]}
+function relDue(t){const now=Date.now();if(t<=now)return'现在';if(t-now<60*MIN)return Math.ceil((t-now)/MIN)+' 分钟后';
+  const n=Math.round((dayStart(t)-dayStart(now))/DAY);if(n<=0)return'今天稍后';if(n===1)return'明天';if(n===2)return'后天';if(n<30)return n+' 天后';
+  const d=new Date(t);return(d.getMonth()+1)+'月'+d.getDate()+'日'}
+const fmtDate=t=>{const d=new Date(t);return d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate()};
+// grades: 0 忘了 · 1 模糊 · 2 记得 · 3 太简单 (an SM-2 style schedule)
+function sched(s0,g){
+  const s={...s0,h:[...s0.h]},now=Date.now(),learn=s.state!=='review';let rq=0;
+  if(g===0){if(!learn){s.lapses++;s.ef=Math.max(1.3,s.ef-0.2)}s.state='learning';s.iv=0;s.due=now+MIN;rq=3}
+  else if(learn){if(g===1){s.state='learning';s.due=now+10*MIN;rq=7}else{s.state='review';s.iv=g===2?1:4;s.due=dueIn(s.iv);s.reps++}}
+  else{const iv=Math.max(1,s.iv);
+    if(g===1){s.iv=Math.max(1,Math.round(iv*1.2));s.ef=Math.max(1.3,s.ef-0.15)}
+    else if(g===2)s.iv=Math.max(iv+1,Math.round(iv*s.ef));
+    else{s.iv=Math.max(iv+2,Math.round(iv*s.ef*1.3));s.ef=Math.min(3,s.ef+0.15)}
+    s.iv=Math.min(s.iv,365);s.due=dueIn(s.iv);s.reps++}
+  s.last=now;s.h.push([now,g]);if(s.h.length>40)s.h=s.h.slice(-40);
+  return{s,rq};
+}
+function ivLabel(s,g){const r=sched(s,g).s;return r.state!=='review'?(g===0?'1 分钟':'10 分钟'):fmtIv(r.iv)}
+function stats(){
+  const all=Object.values(words),now=Date.now(),today=dkey(now),active=new Set(),lv=[0,0,0,0],fc=[0,0,0,0,0,0,0],b=[];
+  for(let i=0;i<=7;i++)b.push(dueIn(i));
+  let due=0,revToday=0,addToday=0;
+  for(const c of all){
+    const ck=dkey(c.created);active.add(ck);if(ck===today)addToday++;
+    let rt=false;for(const h of c.srs.h){const k=dkey(h[0]);active.add(k);if(k===today)rt=true}
+    if(rt)revToday++;
+    if(!canReview(c))continue;
+    lv[level(c)]++;if(c.srs.due<=now)due++;
+    const t=c.srs.due;if(t<b[1])fc[0]++;else for(let i=1;i<7;i++)if(t<b[i+1]){fc[i]++;break}
+  }
+  let streak=0;const d=new Date();if(!active.has(dkey(d)))d.setDate(d.getDate()-1);
+  while(active.has(dkey(d))){streak++;d.setDate(d.getDate()-1)}
+  return{all,due,lv,fc,streak,revToday,addToday,ok:lv[0]+lv[1]+lv[2]+lv[3]};
+}
+function nextLine(){
+  const now=Date.now(),f=Object.values(words).filter(c=>canReview(c)&&c.srs.due>now).map(c=>c.srs.due).sort((a,b)=>a-b);
+  if(!f.length)return'';const s=dayStart(f[0]),n=f.filter(x=>x>=s&&x<s+DAY).length;
+  return`下一批：${relDue(f[0])}，${n} 个。`;
+}
+
+/* ---------- review session ---------- */
+function start(practice,ids){
+  const ok=Object.values(words).filter(canReview);let q;
+  if(ids)q=ids.filter(id=>words[id]&&canReview(words[id]));
+  else if(practice)q=ok.map(c=>[c.id,c.srs.lapses*2+(level(c)<2?2:0)+Math.random()*3]).sort((a,b)=>b[1]-a[1]).slice(0,10).map(x=>x[0]);
+  else{const rank=c=>c.srs.state==='learning'?0:c.srs.state==='review'?1:2;
+    q=ok.filter(isDue).sort((a,b)=>rank(a)-rank(b)||a.srs.due-b.srs.due).slice(0,Number(S.limit)||30).map(c=>c.id)}
+  if(!q.length){toast(practice?'还没有可以练习的单词':'现在没有到期的单词');return}
+  R={q,i:0,shown:false,practice:!!practice,first:{},forgot:[],n:0,ok:0,mode:MODES[S.mode]?S.mode:'word'};
+  doneShown=false;if(tab!=='review')go('review');showCard(true);
+}
+function spellBox(hint){return`<div class="spell"><input id="sp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="拼写（可选）" aria-label="拼写"></div><p class="sp-res" id="spres">${hint?'<button class="link" data-act="hint">提示首字母</button>':''}</p>`}
+function meaningHTML(c){return c.d?`<ul class="trs">${trHTML(c.d.tr,6)}</ul>`:`<p class="mynote">${esc(c.note)}</p>`}
+function pronHTML(c,full){
+  const id=esc(c.id),d=c.d||{},w=c.w||{},uk=d.ph||w.uk,us=w.us;
+  const b=(a,l,v)=>`<button class="pr" data-act="say" data-id="${id}" data-acc="${a}" aria-label="${l}式发音"><span class="pr-l">${l}</span>${v?`<span class="ipa">${esc(ipa(v))}</span>`:''}${IC.spk}</button>`;
+  return`<div class="prs${full?' left':''}">${b('uk','英',uk)}${b('us','美',us)}${full?`<button class="chip" data-act="slow" data-id="${id}">慢速</button>`:''}</div>`;
+}
+function showCard(gesture){
+  if(!R){renderIntro();return}
+  if(R.i>=R.q.length){finish();return}
+  const c=words[R.q[R.i]];
+  if(!c||!canReview(c)){R.q.splice(R.i,1);showCard(gesture);return}
+  R.shown=false;
+  const left=R.q.length-R.i,pct=Math.round(R.i/R.q.length*100),m=R.mode;
+  const front=m==='word'?`<div class="fc-word"><span class="mk">${esc(W2(c))}</span></div><p class="fc-hint">先自己读一遍，想想是什么意思</p>`
+    :m==='listen'?`<button class="bigspk" data-act="say-card" aria-label="再听一遍">${IC.spk}</button><p class="fc-hint">听发音，把它拼出来</p>${spellBox(false)}`
+    :`${meaningHTML(c)}${spellBox(true)}`;
+  $('#rv').innerHTML=`<div class="rv-top"><div class="prog" role="progressbar" aria-label="进度" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div><span class="left-n">${R.practice?'练习 · ':''}还剩 ${left}</span><button class="link" data-act="end">结束</button></div>
+<article class="fc" id="fc"${m==='word'?' data-act="reveal"':''}>${front}<div class="fc-back" id="back" hidden></div></article>
+<div class="rv-act" id="act"><button class="btn ink big" data-act="reveal">显示答案</button></div>`;
+  if(m==='listen'&&gesture)say(W2(c));
+}
+function reveal(){
+  if(!R||R.shown)return;const c=words[R.q[R.i]];if(!c)return;
+  R.shown=true;let sug=-1;const sp=$('#sp');
+  if(sp){const v=sp.value.trim();sp.disabled=true;
+    if(v){const ok=norm(v)===norm(W2(c));sug=ok?2:0;$('#spres').innerHTML=ok?`<span class="ok">${IC.ok} 拼对了</span>`:`<span class="bad">你拼的是 <s>${esc(v)}</s></span>`}
+    else $('#spres').textContent=''}
+  const m=R.mode,ex=c.w&&c.w.defs.find(x=>x.ex);
+  $('#back').innerHTML=(m!=='word'?`<div class="fc-word sm"><span class="mk">${esc(W2(c))}</span></div>`:'')+pronHTML(c,false)
+    +(m!=='zh'?meaningHTML(c):'')
+    +(ex?`<button class="ex1" data-act="say-t" data-t="${esc(ex.ex)}">${esc(ex.ex)}</button>`:'')
+    +(c.d&&c.d.roots.length?`<p class="tip">词根词缀：${c.d.roots.map(r=>esc(r[0])+' = '+esc(r[1])).join('；')}</p>`:'')
+    +(c.note&&c.d?`<p class="mynote">备注：${esc(c.note)}</p>`:'')
+    +`<button class="link" data-act="open" data-id="${esc(c.id)}">查看完整释义</button>`;
+  $('#back').hidden=false;$('#fc').classList.add('open');$('#fc').removeAttribute('data-act');
+  $('#act').innerHTML=`<div class="grades">${GN.map((n,g)=>`<button class="g g${g}${sug===g?' sug':''}" data-act="grade" data-g="${g}"><b>${n}</b><small>${R.practice?(g===0?'稍后再来':'不计入计划'):ivLabel(c.srs,g)}</small></button>`).join('')}</div>`;
+  if(S.auto!==false&&m!=='listen')say(W2(c));
+}
+function grade(g){
+  if(!R||!R.shown)return;
+  const id=R.q[R.i],c0=words[id];
+  if(c0){
+    if(!(id in R.first)){R.first[id]=g;R.n++;if(g>=2)R.ok++}
+    if(g===0&&!R.forgot.includes(id))R.forgot.push(id);
+    let rq=0;
+    if(R.practice)rq=g===0?3:0;else{const c=clone(c0),r=sched(c.srs,g);c.srs=r.s;rq=r.rq;put(fix(c,id))}
+    if(rq)R.q.splice(Math.min(R.i+1+rq,R.q.length),0,id);
+  }
+  R.i++;render();showCard(true);window.scrollTo(0,0);
+}
+function finish(){
+  if(!R)return;
+  const n=R.n,pct=n?Math.round(R.ok/n*100):0,f=R.forgot.slice(),pr=R.practice;
+  lastForgot=f;R=null;doneShown=true;
+  if(!n){doneShown=false;renderIntro();render();return}
+  const more=stats().due;
+  $('#rv').innerHTML=`<div class="done"><h2>${pr?'练习完成':'这一轮复习完成了'}</h2>
+<div class="done-stats"><div><b>${n}</b><span>个单词</span></div><div><b>${pct}%</b><span>一次就记得</span></div><div><b>${f.length}</b><span>个忘了</span></div></div>
+${f.length?`<button class="btn hl big" data-act="redo">再练一遍刚才忘的 ${f.length} 个</button>`:''}
+${more&&!pr?`<button class="btn ink big" data-act="start">继续复习（还有 ${more} 个）</button>`:''}
+<button class="btn ghost big" data-act="tab" data-v="home">回到记录</button>
+<p class="fine">${pr?'练习不会改变复习计划。':''}${esc(nextLine())}</p></div>`;
+  render();
+}
+
+/* ---------- rendering ---------- */
+function rowHTML(c){
+  const id=esc(c.id),l=level(c);
+  const gl=c.st==='ok'||c.note?esc(gloss(c)):c.st==='pd'?'<span class="pend">联网后自动查释义</span>':'<span class="pend">词典里没有，点开写备注</span>';
+  return`<li class="row"><button class="row-m" data-act="open" data-id="${id}"><span class="r1"><span class="hw">${esc(W2(c))}</span>${c.d&&c.d.ph?`<span class="ipa">${esc(ipa(c.d.ph))}</span>`:''}</span><span class="gl">${gl}</span></button>${canReview(c)?`<span class="dots" role="img" aria-label="${LVN[l]}">${[1,2,3].map(k=>`<i class="${k<=l?'on':''}"></i>`).join('')}</span>`:''}<button class="spk" data-act="say" data-id="${id}" aria-label="朗读 ${esc(W2(c))}">${IC.spk}</button></li>`;
+}
+function howHTML(){return`<section class="sec"><h2>怎么用</h2><ol class="how"><li><b>随手查、随手记：</b>在上面输入单词，边打字边出音标和中文意思，点「记下」存进词库。点喇叭听英音或美音。</li><li><b>有空就复习：</b>点「复习」，先自己回想，再看答案，按记忆程度点「忘了 / 模糊 / 记得 / 太简单」。</li><li><b>按遗忘曲线重复：</b>越熟的词隔得越久才再出现，忘了的词几分钟后会再考你一次。又遇到同一个词时再记一次，它会马上回到今天的复习里。</li></ol></section>`}
+function overviewHTML(st){
+  if(!st.ok)return'';
+  const mx=Math.max(1,...st.fc),dn=i=>i===0?'今天':i===1?'明天':'周'+'日一二三四五六'[new Date(dueIn(i)).getDay()];
+  return`<section class="sec"><h2>记忆概况</h2>
+<div class="mbar" role="img" aria-label="${LVN.map((n,k)=>n+' '+st.lv[k]).join('，')}">${st.lv.map((n,k)=>n?`<i class="m${k}" style="width:${n/st.ok*100}%"></i>`:'').join('')}</div>
+<ul class="legend">${st.lv.map((n,k)=>`<li><i class="m${k}"></i>${LVN[k]}<b>${n}</b></li>`).join('')}</ul>
+<h3>未来 7 天的复习量</h3><ul class="fc7">${st.fc.map((n,i)=>`<li><span>${dn(i)}</span><span class="tr"><i style="width:${n/mx*100}%"></i></span><b>${n}</b></li>`).join('')}</ul></section>`;
+}
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const standalone=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+function renderHome(st){
+  const all=st.all;let h='<div id="pick" class="pick" hidden></div>';
+  if(isIOS&&!standalone&&S.tip&&window.top===window.self)h+=`<div class="notice"><span>在 Safari 点「分享」→「添加到主屏幕」，以后从主屏幕图标打开，像 App 一样用。</span><button class="icon" data-act="tip-x" aria-label="不再提示">${IC.x}</button></div>`;
+  const pd=all.filter(c=>c.st==='pd').length;
+  if(pd)h+=`<div class="notice"><span>${pd} 个词还没查到释义（当时没网）</span><button class="btn sm ink" data-act="retry">现在查</button></div>`;
+  if(!all.length){$('#home').innerHTML=h+howHTML();renderPick();return}
+  h+=`<section class="due"><div><div class="num${st.due?'':' zero'}">${st.due}</div><p>${st.due?'个单词到了复习时间':st.ok?'个待复习。'+esc(nextLine()):'个待复习。'}</p></div>
+${st.due?'<button class="btn hl" data-act="start">开始复习</button>':st.ok?'<button class="btn ghost" data-act="practice">练 10 个</button>':''}
+<ul class="facts"><li><b>${st.streak}</b>天连续</li><li><b>${st.addToday}</b>今天新记</li><li><b>${st.revToday}</b>今天复习</li><li><b>${all.length}</b>总词数</li></ul></section>`;
+  const recent=all.slice().sort((a,b)=>b.created-a.created).slice(0,8);
+  h+=`<section class="sec"><div class="sec-h"><h2>最近记的</h2>${all.length>recent.length?`<button class="link" data-act="tab" data-v="lib">全部 ${all.length} 个</button>`:''}</div><ul class="list">${recent.map(rowHTML).join('')}</ul></section>`;
+  $('#home').innerHTML=h+overviewHTML(st);renderPick();
+}
+function modeSeg(){return`<div class="seg" role="radiogroup" aria-label="复习方式">${Object.entries(MODES).map(([k,[n]])=>`<button role="radio" aria-checked="${S.mode===k}" data-act="mode" data-v="${k}">${n}</button>`).join('')}</div><p class="fine">${(MODES[S.mode]||MODES.word)[1]}</p>`}
+function renderIntro(st){
+  st=st||stats();const lim=Number(S.limit)||30;let h;
+  if(!st.all.length)h=`<div class="intro"><div class="num zero">0</div><p class="sub">还没有单词。先去「记录」记下第一个生词吧。</p><button class="btn ink big" data-act="tab" data-v="home">去记录</button></div>`;
+  else if(st.due)h=`<div class="intro"><div class="num">${st.due}</div><p class="sub">${st.due>lim?`个单词到了复习时间，这一轮先复习 ${lim} 个`:'个单词到了复习时间'}</p>${modeSeg()}<button class="btn hl big" data-act="start">开始复习</button><button class="btn ghost big" data-act="practice">自由练习 10 个（不影响复习计划）</button></div>`;
+  else h=`<div class="intro"><div class="num zero">0</div><p class="sub">现在没有到期的单词。${esc(nextLine())}</p>${st.ok?modeSeg()+'<button class="btn hl big" data-act="practice">自由练习 10 个（不影响复习计划）</button>':''}</div>`;
+  $('#rv').innerHTML=h;
+}
+const FL={all:['全部',()=>true],due:['待复习',isDue],learn:['学习中',c=>canReview(c)&&level(c)<=1],fam:['熟悉',c=>canReview(c)&&level(c)===2],done:['已掌握',c=>canReview(c)&&level(c)===3],todo:['没释义',c=>c.st!=='ok']};
+function renderLib(){
+  const all=Object.values(words);
+  $('#flt').innerHTML=Object.entries(FL).map(([k,[n,f]])=>{const cnt=all.filter(f).length;if(!cnt&&k!=='all'&&k!==flt)return'';return`<button class="chip" data-act="flt" data-v="${k}" aria-pressed="${flt===k}">${n} ${cnt}</button>`}).join('');
+  if(!all.length){$('#lib').innerHTML='<p class="empty">词库还是空的。在「记录」里记下第一个生词吧。</p>';return}
+  const q=norm($('#q').value),s=$('#sort').value;
+  let list=all.filter((FL[flt]||FL.all)[1]);
+  if(q)list=list.filter(c=>norm(W2(c)+' '+c.text+' '+gloss(c)+' '+c.note).includes(q));
+  if(s==='az')list.sort((a,b)=>W2(a).localeCompare(W2(b),'en',{sensitivity:'base'}));
+  else if(s==='hard')list.sort((a,b)=>b.srs.lapses-a.srs.lapses||b.created-a.created);
+  else list.sort((a,b)=>b.created-a.created);
+  if(!list.length){$('#lib').innerHTML=`<p class="empty">${q?'没有找到匹配的单词。':'这一类里还没有单词。'}</p>`;return}
+  const shown=list.slice(0,libMax);let h='';
+  if(s==='new'){const cnt={};for(const c of shown){const k=dayLabel(c.created);cnt[k]=(cnt[k]||0)+1}
+    let last='';for(const c of shown){const k=dayLabel(c.created);if(k!==last){if(last)h+='</ul>';h+=`<h3 class="grp"><span>${esc(k)}</span><span>${cnt[k]} 个</span></h3><ul class="list">`;last=k}h+=rowHTML(c)}h+='</ul>'}
+  else h=`<ul class="list">${shown.map(rowHTML).join('')}</ul>`;
+  if(list.length>libMax)h+=`<button class="btn ghost big" data-act="more">再显示 ${Math.min(200,list.length-libMax)} 个</button>`;
+  $('#lib').innerHTML=`<p class="libcount"><span>${list.length} 个单词</span><button class="link" data-act="copy">复制词表</button></p>`+h;
+}
+function freqLabel(r){return!r?'':r<=2000?'非常常用':r<=8000?'常用':r<=20000?'较常用':'少见'}
+function renderDetail(force){
+  const c=words[openId];if(!c){closeSheet();return}
+  const ta=$('#dn');if(!force&&ta&&document.activeElement===ta)return;
+  const box=$('#shIn'),sc=box.scrollTop,d=c.d,id=esc(c.id);
+  const ad=armed==='del'+c.id&&Date.now()-armT<5000,ar=armed==='rs'+c.id&&Date.now()-armT<5000;
+  let h=`<div class="sh-bar"><span class="fine">${esc(dayLabel(c.created))}记录 · ${LVN[level(c)]}</span><button class="icon" data-act="close" aria-label="关闭">${IC.x}</button></div>
+<h2 class="d-w"><span class="mk">${esc(W2(c))}</span></h2>`;
+  if(c.form&&norm(c.form)!==c.key)h+=`<p class="fine">你遇到的是 <b>${esc(c.form)}</b>${c.kind?`（${esc(c.kind.split('').map(k=>EXN[k]).filter(Boolean).join('/'))}）`:''}</p>`;
+  else if(norm(c.text)!==c.key)h+=`<p class="fine">你输入的是「${esc(c.text)}」</p>`;
+  h+=pronHTML(c,true);
+  if(d){
+    const meta=[...d.tags].map(t=>TAGN[t]).filter(Boolean).map(t=>`<span class="tag">${t}</span>`);
+    if(d.col)meta.unshift(`<span class="tag hot">柯林斯 ${'★'.repeat(d.col)}</span>`);
+    if(d.ox)meta.unshift('<span class="tag hot">牛津核心词</span>');
+    if(d.rank)meta.push(`<span class="tag">${freqLabel(d.rank)}</span>`);
+    if(meta.length)h+=`<div class="meta">${meta.join('')}</div>`;
+    h+=`<ul class="trs">${trHTML(d.tr)}</ul>`;
+    const ex=d.ex.split('/').map(p=>p.split(':')).filter(p=>EXN[p[0]]&&p[1]);
+    const lem=d.ex.split('/').map(p=>p.split(':')).find(p=>p[0]==='0');
+    if(ex.length||lem)h+=`<h3>词形变化</h3><p class="forms">${lem?`<span>原形 <b>${esc(lem[1])}</b></span>`:''}${ex.map(p=>`<span>${EXN[p[0]]} <b>${esc(p[1])}</b></span>`).join('')}</p>`;
+    if(d.roots.length)h+=`<h3>词根词缀</h3><p class="tip">${d.roots.map(r=>`<b>${esc(r[0])}</b> = ${esc(r[1])}`).join('<br>')}</p>`;
+  }else h+=c.st==='pd'?'<p class="pend">当时没网，联网后会自动查释义。</p>':'<p class="pend">离线词典里没有这个词。可以在下面的备注里写上意思，复习时会显示备注。</p>';
+  if(c.w&&c.w.defs.length)h+=`<h3>英文释义和例句</h3><ul class="defs">${c.w.defs.map(x=>`<li>${x.pos?`<i class="pos">${esc(x.pos)}</i>`:''}${esc(x.en)}${x.ex?`<button class="ex" data-act="say-t" data-t="${esc(x.ex)}">${IC.spk}<span>${esc(x.ex)}</span></button>`:''}</li>`).join('')}</ul>`;
+  else if(webBusy.has(c.id))h+='<p class="fine">正在加载英文释义和例句…</p>';
+  if(d&&d.sg>=0)h+=`<h3>易混词辨析</h3><div id="simbox"><p class="fine">加载中…</p></div>`;
+  h+=`<h3>我的备注</h3><textarea id="dn" rows="2" maxlength="1000" placeholder="在哪遇到的、原句、自己的联想…">${esc(c.note)}</textarea>
+<h3>记忆情况</h3><dl class="mem"><div><dt>遇到</dt><dd>${c.seen} 次</dd></div><div><dt>复习</dt><dd>${c.srs.h.length} 次</dd></div><div><dt>忘记</dt><dd>${c.srs.lapses} 次</dd></div><div><dt>当前间隔</dt><dd>${c.srs.state==='review'?fmtIv(c.srs.iv):'—'}</dd></div><div><dt>下次复习</dt><dd>${canReview(c)?relDue(c.srs.due):'—'}</dd></div><div><dt>记录于</dt><dd>${fmtDate(c.created)}</dd></div></dl>
+<div class="acts"><button class="btn ${ar?'armed':'ghost'}" data-act="reset">${ar?'再点一次确认重置':'重置记忆进度'}</button><button class="btn ${ad?'armed':'danger'}" data-act="del">${ad?'再点一次确认删除':'删除'}</button></div>
+<p class="fine">词典：ECDICT 开源英汉词典。英文释义：Free Dictionary（联网时）。</p>`;
+  box.innerHTML=h;if(!force)box.scrollTop=sc;
+  if(d&&d.sg>=0)loadSim(d.sg).then(g=>{const b=$('#simbox');if(!b||openId!==c.id)return;if(!g){b.innerHTML='';return}
+    b.innerHTML=`<p class="sim">${esc(g[0].join(' · '))}\n${esc(g[1])}</p>`}).catch(()=>{const b=$('#simbox');if(b)b.innerHTML='<p class="fine">联网后可以看。</p>'});
+}
+const swOK=()=>'serviceWorker' in navigator&&!!navigator.serviceWorker.controller;
+function renderSettings(){
+  const seg=(k,o)=>`<div class="seg" role="radiogroup">${o.map(([v,n])=>`<button role="radio" aria-checked="${String(S[k])===v}" data-act="set" data-k="${k}" data-v="${v}">${n}</button>`).join('')}</div>`;
+  $('#shIn').innerHTML=`<div class="sh-bar"><h2>设置</h2><button class="icon" data-act="close" aria-label="关闭">${IC.x}</button></div>
+<div class="set"><span>口音</span>${seg('accent',[['us','美音'],['uk','英音']])}</div>
+${EMBED?'':`<div class="set"><span>发音来源</span>${seg('voice',[['real','真人'],['tts','手机语音']])}</div>`}
+<div class="set"><span>看答案时朗读</span>${seg('auto',[['true','开'],['false','关']])}</div>
+<div class="set"><span>每轮最多复习</span>${seg('limit',[['20','20'],['30','30'],['50','50'],['100','100']])}</div>
+<p class="fine">${EMBED?'发音用手机自带的语音。':'「真人」用有道词典的发音，需要联网；没网时自动改用手机语音。'}听不到声音？把 iPhone 侧边的静音键拨回响铃，再调高音量。</p>
+<button class="btn ghost" data-act="say-t" data-t="pronunciation">试听发音</button>
+<h3>离线词典</h3>
+${EMBED?'<p class="fine">在这个链接里查词需要联网。想没网也能用，可以把 App 放到自己的网址上（见说明）。</p>':swOK()?`<p class="fine">${S.offline?'已下载全部词典，没网也能查词和中文查英文。':'查过的词会自动存在手机上。下载全部词典（约 4MB）后，没网也能查任何词。'}</p><button class="btn ghost" data-act="dl"${dlBusy?' disabled':''}>${dlBusy?esc(dlText):S.offline?'重新下载词典':'下载全部词典'}</button>`:'<p class="fine">从主屏幕图标打开后，可以在这里下载全部词典离线使用。</p>'}
+<h3>备份</h3>
+<p class="fine">单词只保存在这台手机的${EMBED?'浏览器':'这个 App '}里。建议偶尔备份一次（复制后粘贴到备忘录），换手机时用「导入」恢复。</p>
+<div class="acts" style="margin-top:8px">${EMBED?'':'<button class="btn ghost" data-act="export">导出备份文件</button>'}<button class="btn ghost" data-act="copy-bk">复制备份内容</button><button class="btn ghost" data-act="import">导入备份</button></div>
+<textarea id="bk" rows="5" hidden aria-label="备份内容" placeholder="把备份内容粘贴到这里"></textarea>
+<button class="btn ink" data-act="import-text" id="bkgo" hidden>导入粘贴的内容</button>
+<h3>复习规则</h3>
+<p class="fine">新记的词马上可以复习。点「记得」1 天后再出现，之后每次答对，间隔大约乘以 2.5：1 天 → 3 天 → 8 天 → 20 天 → 50 天……「模糊」会缩短间隔，「忘了」1 分钟后再考一次并从头开始，「太简单」会把间隔拉得更长。间隔到 30 天就算已掌握。</p>
+<h3>关于</h3>
+<p class="fine">不用登录，不用任何账号或密钥。词典数据来自开源的 ECDICT（MIT 许可），联网时英文释义来自 Free Dictionary API，真人发音来自有道词典。</p>`;
+}
+function render(){
+  const st=stats(),bd=$('#badge');
+  bd.textContent=st.due>99?'99+':String(st.due);bd.hidden=!st.due;
+  if(tab==='home')renderHome(st);else if(tab==='lib')renderLib();else if(!R&&!doneShown)renderIntro(st);
+  if(sheetKind==='word')renderDetail();
+}
+function go(t){
+  if(t!==tab)doneShown=false;
+  tab=t;
+  document.querySelectorAll('.tabs [data-act=tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v===t)));
+  for(const v of['home','review','lib'])$('#v-'+v).hidden=v!==t;
+  render();window.scrollTo(0,0);
+}
+function showSheet(){clearTimeout(hideT);$('#scrim').hidden=false;const s=$('#sheet');s.hidden=false;void s.offsetHeight;s.classList.add('in');document.documentElement.classList.add('lock');$('#shIn').scrollTop=0}
+function closeSheet(){
+  const ta=$('#dn');if(ta&&sheetKind==='word')saveNote(ta);
+  sheetKind=null;openId=null;armed='';$('#scrim').hidden=true;
+  const s=$('#sheet');s.classList.remove('in');hideT=setTimeout(()=>{if(!sheetKind)s.hidden=true},280);
+  document.documentElement.classList.remove('lock');
+}
+function openWord(id){if(!words[id])return;sheetKind='word';openId=id;armed='';renderDetail(true);showSheet();enrich(id)}
+function openSettings(){sheetKind='set';openId=null;renderSettings();showSheet()}
+function saveNote(ta){const c=words[openId];if(!c)return;const v=ta.value.trim().slice(0,1000);if(v!==c.note){const n=clone(c);n.note=v;put(fix(n,c.id));toast('备注已保存');if(tab==='home'||tab==='lib'||(!R&&!doneShown))setTimeout(render,0)}}
+
+/* ---------- backup + offline download ---------- */
+const backupText=()=>JSON.stringify({app:'shengciben',v:1,at:new Date().toISOString(),S,words:Object.values(words)});
+function showBk(t,msg){if(sheetKind!=='set')openSettings();const ta=$('#bk');ta.hidden=false;$('#bkgo').hidden=!!t;ta.readOnly=!!t;ta.value=t||'';if(t){ta.focus();ta.select()}else ta.focus();if(msg)toast(msg)}
+function exportFile(){
+  if(!Object.keys(words).length){toast('词库还是空的');return}
+  const t=backupText(),name='生词本备份-'+ymd()+'.json';
+  try{const file=new File([t],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:'生词本备份'}).catch(e=>{if(!e||e.name!=='AbortError')saveBlob(t,name)});return}}catch(e){}
+  saveBlob(t,name);
+}
+function saveBlob(t,name){
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000);toast('备份文件已生成')}
+  catch(e){showBk(t,'没法生成文件，备份内容显示在下面，长按全选后复制保存')}
+}
+function copyBackup(){
+  const t=backupText();
+  try{navigator.clipboard.writeText(t).then(()=>toast(`已复制 ${Object.keys(words).length} 个单词的备份，可以粘贴到备忘录保存`),()=>showBk(t,'没能自动复制，备份内容显示在下面，长按全选后复制'))}catch(e){showBk(t,'没能自动复制，备份内容显示在下面，长按全选后复制')}
+}
+function importText(t){
+  let o;try{o=JSON.parse(t)}catch(e){toast('这不是有效的备份内容');return}
+  const list=Array.isArray(o)?o:A(o&&o.words);let n=0,u=0;
+  for(const raw of list){if(!raw||typeof raw!=='object'||!raw.id)continue;const c=fix(clone(raw),raw.id),cur=words[c.id];
+    if(!cur){if(Object.values(words).some(x=>x.key===c.key))continue;words[c.id]=c;n++}else if(c.updated>cur.updated){words[c.id]=c;u++}}
+  save();render();toast(`导入完成：新增 ${n} 个，更新 ${u} 个`);
+}
+function copyList(){
+  const list=Object.values(words).sort((a,b)=>a.created-b.created);
+  if(!list.length){toast('词库还是空的');return}
+  const t=list.map(c=>[W2(c),ipa(c.d&&c.d.ph),trLines(c.d&&c.d.tr).join('；'),c.note].join('\t')).join('\n');
+  try{navigator.clipboard.writeText(t).then(()=>toast(`已复制 ${list.length} 个单词，可以粘贴到备忘录或表格里`),()=>showBk(t,'没能自动复制，词表显示在下面'))}catch(e){showBk(t,'没能自动复制，词表显示在下面')}
+}
+async function downloadAll(){
+  if(dlBusy)return;dlBusy=true;
+  const files=[...new Set(Object.values(DIX))].map(n=>'dict/'+n+'.json').concat(['dict/zh.txt'],Array.from({length:NS},(_,i)=>'dict/sim'+i+'.json'));
+  const total=files.length,q=files.slice();let done=0,fail=0;
+  const upd=()=>{dlText=`正在下载 ${done}/${total}`;const b=$('[data-act=dl]');if(b)b.textContent=dlText};
+  upd();
+  const worker=async()=>{while(q.length){const f=q.shift();try{const r=await fetch(f);if(!r.ok)throw 0;await r.arrayBuffer()}catch(e){fail++}done++;upd()}};
+  await Promise.all([worker(),worker(),worker(),worker()]);
+  dlBusy=false;
+  if(!fail){S.offline=Date.now();save();toast('词典已下载，没网也能查词')}else toast(`有 ${fail} 个文件没下载成功，联网后再试一次`);
+  if(sheetKind==='set')renderSettings();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
+  const a=b.dataset.act,id=b.dataset.id;
+  switch(a){
+    case'tab':go(b.dataset.v);break;
+    case'gear':openSettings();break;
+    case'close':closeSheet();break;
+    case'start':start(false);break;
+    case'practice':start(true);break;
+    case'redo':start(true,lastForgot);break;
+    case'end':if(R&&R.n)finish();else{R=null;renderIntro()}break;
+    case'reveal':reveal();break;
+    case'grade':grade(+b.dataset.g);break;
+    case'mode':S.mode=b.dataset.v;save();renderIntro();break;
+    case'say':{const c=words[id];if(c)say(W2(c),{accent:b.dataset.acc});break}
+    case'slow':{const c=words[id];if(c)say(W2(c),{slow:true});break}
+    case'say-card':{const c=R&&words[R.q[R.i]];if(c)say(W2(c));break}
+    case'say-t':say(b.dataset.t,{accent:b.dataset.acc});break;
+    case'hint':{const c=R&&words[R.q[R.i]];if(!c)break;const w=W2(c);
+      $('#spres').innerHTML=`<span class="hintw">${esc(w.split(' ').map(p=>p[0]+' _'.repeat(Math.max(0,p.length-1))).join('   '))}</span>　<span class="fine">${w.replace(/\s/g,'').length} 个字母</span>`;break}
+    case'open':openWord(id);break;
+    case'ac-add':{const f=acRows[+b.dataset.i];if(!f)break;const r=addFound(f,$('#nt').value.trim().slice(0,300),f.form||f.inf.hw);addedToast([r]);
+      $('#w').value='';$('#nt').value='';acRows=[];renderAC();pick=null;render();break}
+    case'pick-add':{const f=pick&&pick.items&&pick.items[+b.dataset.i];if(!f)break;const r=addFound(f,pick.note,pick.kind==='zh'?f.inf.hw:pick.q);
+      if(pick.kind==='zh'&&!r.dup&&!r.c.note.includes(pick.q)){const n=clone(r.c);n.note=(n.note?n.note+'；':'')+'查的中文：'+pick.q;put(fix(n,n.id))}
+      addedToast([r]);if(pick.kind==='sp')pick=null;render();break}
+    case'pick-x':pick=null;renderPick();break;
+    case'save-raw':{if(!pick)break;const r=addRaw(pick.q,pick.note,'nf');addedToast([r]);pick=null;render();if(!r.dup)openWord(r.c.id);break}
+    case'retry':retryPending();break;
+    case'tip-x':S.tip=false;save();render();break;
+    case'reset':{if(armed==='rs'+openId&&Date.now()-armT<5000){const c=clone(words[openId]);c.srs=fix({}).srs;put(fix(c,openId));armed='';toast('记忆进度已重置，已排进今天的复习');render()}
+      else{armed='rs'+openId;armT=Date.now();renderDetail(true)}break}
+    case'del':{if(armed==='del'+openId&&Date.now()-armT<5000){const i=openId;closeSheet();drop(i);toast('已删除');render()}
+      else{armed='del'+openId;armT=Date.now();renderDetail(true)}break}
+    case'set':{const k=b.dataset.k,v=b.dataset.v;S[k]=k==='auto'?v==='true':k==='limit'?Number(v):v;save();renderSettings();if(k==='accent'||k==='voice')say('pronunciation');render();break}
+    case'flt':flt=b.dataset.v;libMax=200;renderLib();break;
+    case'more':libMax+=200;renderLib();break;
+    case'copy':copyList();break;
+    case'export':exportFile();break;
+    case'copy-bk':copyBackup();break;
+    case'import':{const f=$('#imf');f.value='';f.click();setTimeout(()=>{if(sheetKind==='set'){const ta=$('#bk');if(ta&&ta.hidden){ta.hidden=false;ta.readOnly=false;ta.value='';$('#bkgo').hidden=false}}},400);break}
+    case'import-text':{const v=$('#bk').value.trim();if(v)importText(v);break}
+    case'dl':downloadAll();break;
+  }
+});
+$('#imf').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;f.text().then(importText,()=>toast('读取文件失败'))});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&sheetKind){closeSheet();return}
+  if(tab!=='review'||!R||sheetKind)return;
+  const t=e.target;
+  if(t&&t.id==='sp'){if(e.key==='Enter'){e.preventDefault();reveal()}return}
+  if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;
+  if((e.key===' '||e.key==='Enter')&&!R.shown){e.preventDefault();reveal()}
+  else if(R.shown&&/^[1-4]$/.test(e.key)){e.preventDefault();grade(+e.key-1)}
+});
+document.addEventListener('change',e=>{if(e.target.id==='dn')saveNote(e.target)});
+$('#cap').addEventListener('submit',e=>{e.preventDefault();const w=$('#w'),n=$('#nt'),v=w.value;if(!v.trim()){w.focus();return}
+  acSeq++;acRows=[];renderAC();addFrom(v,n.value.trim().slice(0,300));w.value='';n.value=''});
+let acT=0;$('#w').addEventListener('input',e=>{clearTimeout(acT);const v=e.target.value;acT=setTimeout(()=>autocomplete(v),120)});
+$('#q').addEventListener('input',()=>{libMax=200;renderLib()});
+$('#sort').addEventListener('change',()=>renderLib());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
+window.addEventListener('online',()=>retryPending());
+setInterval(()=>{if(!document.hidden)render()},60000);
+
+/* ---------- start ---------- */
+load();render();
+if(Object.values(words).some(c=>c.st==='pd'))setTimeout(retryPending,800);
+if(!EMBED&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "生词本",
+  "short_name": "生词本",
+  "description": "随手记生词，查音标、发音和中文释义，按遗忘曲线复习。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffe54a",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
