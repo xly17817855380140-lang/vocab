@@ -1,5 +1,5 @@
 // 生词本 offline cache: the app shell is network-first (so updates arrive), dictionary files are cache-first.
-const SHELL = 'shell-v1', DICT = 'dict-v1';
+const SHELL = 'shell-v2', DICT = 'dict-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
